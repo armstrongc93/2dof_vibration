@@ -3,6 +3,6 @@
 
 Verification files for MATLAB simply require input of the desired design parameters of the vehicle (mass, inertia, stiffness, damping, etc.) and the script will output the max pitch and bounce values, as well as plot of the pitch and bounce with respect to time. Micro-oscillations are present in the plot due to the forced nature of the system.
 
-The C++ script requires the Eigen library and the odeint library from Boost in order to function properly. Eigen is used to determine the natural frequency of the system, and odeint utilizes the Runge-Kutta Dormand-Prince 5 method to solve the coupled ODE. The C++ script allows for the user to select a vehicle class (from SAE passenger vehicle classifications) or define their own parameters. The script outputs the maximum pitch (x[3]) and bounce values (x[1]) values, as well as the undamped natural frequencies.
+The C++ script requires the Eigen library and the odeint library from Boost in order to function properly. Eigen is used to determine the natural frequency of the system, and odeint utilizes the Runge-Kutta Dormand-Prince 5 method to solve the coupled ODE. The C++ script allows for the user to select a vehicle class (from SAE passenger vehicle classifications) or define their own parameters. The script outputs the maximum pitch (x[2]) and bounce values (x[0]) values, as well as the undamped natural frequencies.
 
 
