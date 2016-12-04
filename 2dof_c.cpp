@@ -37,14 +37,9 @@ class Road
 
 			cout << "Enter the peak amplitude of the road variation, A (m): "; cin >> A;
 			cout << "Enter the wavelength of the road variation, L (m): "; cin >> L;
-			cout << "Enter the velocity of the vehicle, V (m/s): "; cin >> V;	
-			cout << "\n";
-		}
-
-		// Calculate radial frequency due to road conditions
-		void calcRadialFreq()
-		{
+			cout << "Enter the velocity of the vehicle, V (m/s): "; cin >> V;
 			radFreq = (2 * pi * V) / L;
+			cout << "\n";
 		}
 
 };
