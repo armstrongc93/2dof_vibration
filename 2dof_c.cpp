@@ -5,6 +5,9 @@
 *	These ouputs are based on vehicle characteristics
 */
 
+// Courtney Armstrong
+// Rev 2, 12/06/16
+
 #include <iostream>
 #include <fstream>
 #include <boost/numeric/odeint.hpp>
@@ -37,10 +40,12 @@ class Road
 
 			cout << "Enter the peak amplitude of the road variation, A (m): "; cin >> A;
 			cout << "Enter the wavelength of the road variation, L (m): "; cin >> L;
-			cout << "Enter the velocity of the vehicle, V (m/s): "; cin >> V;
-			radFreq = (2 * pi * V) / L;
+			cout << "Enter the velocity of the vehicle, V (m/s): "; cin >> V;	
 			cout << "\n";
+			radFreq = (2 * pi * V) / L;
+			cout << setprecision(4) << "The radial frequency is " << radFreq << " rad/s\n";
 		}
+
 
 };
 
@@ -50,17 +55,15 @@ class Vehicle
 	friend class coupledODE;
 	private:
 		double mass;			// Vehicle mass, kg
-		double inertia;			// Mass moment of inertia, lb*sec^2*in
-		double stiffness_f;		// Stiffness of front suspension, lb/in
-		double stiffness_r;		// Stiffness of rear suspension, lb/in
-		double damping_f;		// Damping of front suspension, lb*s/in
-		double damping_r;		// Damping of rear suspension, lb*s/in
-		double frontLength;		// Distance from CG to front suspension, in
-		double rearLength;		// Distance from CG to rear suspension, in
+		double inertia;			// Mass moment of inertia, N*sec^2*m
+		double stiffness_f;		// Stiffness of front suspension, N/m
+		double stiffness_r;		// Stiffness of rear suspension, N/m
+		double damping_f;		// Damping of front suspension, N*s/m
+		double damping_r;		// Damping of rear suspension, N*s/m
+		double frontLength;		// Distance from CG to front suspension, m
+		double rearLength;		// Distance from CG to rear suspension, m
 		double w1;				// 1st natural frequency, rad/s
 		double w2;				// 2nd natural frequency, rad/s
-		double maxPitch;		// Maximum pitch of system, rad	
-		double maxBounce;		// Maximum bounce of system, in
 		int classVal;			// User defined class type
 
 	public:
@@ -71,11 +74,11 @@ class Vehicle
 			cout << "Before the vibration analysis can be completed, modeling parameters for the vehicle need to be defined." << endl;
 			cout << "The pre-defined parameters are based on SAE passenger car classifications, or you can define your own parameters.\n" << endl;
 			cout << "The SAE classification are based on the wheelbase (length from front to back axle) of the vehicles. They are defined as follows:" << endl;
-			cout << "\tClass 1 - Wheelbase = 80.9-94.8\"; Includes sub-compact vehicles, like the Ford Fiesta and Kia Rio." << endl;
-			cout << "\tClass 2 - Wheelbase = 94.8-101.6\"; Includes compact vehicles, like the Toyota Corolla and Mazda3" << endl;
-			cout << "\tClass 3 - Wheelbase = 101.6-110.4\"; Includes mid-size vehicles, like the Hyundai Sonata and Honda Accord" << endl;
-			cout << "\tClass 4 - Wheelbase = 110.4-117.5\"; Includes full-size vehicles, like the Infiniti Q70 and Jaguar XF" << endl;
-			cout << "\tClass 5 - Wheelbase = 117.5\"+; Unusual for modern passenger cars to fit this class\n" << endl;
+			cout << "\tClass 1 - Wheelbase = 2.06-2.41 m (80.9-94.8\"); Includes sub-compact vehicles, like the Ford Fiesta and Kia Rio." << endl;
+			cout << "\tClass 2 - Wheelbase = 2.41-2.58 m (94.8-101.6\"); Includes compact vehicles, like the Toyota Corolla and Mazda3" << endl;
+			cout << "\tClass 3 - Wheelbase = 2.58-2.80 m (101.6-110.4\"); Includes mid-size vehicles, like the Hyundai Sonata and Honda Accord" << endl;
+			cout << "\tClass 4 - Wheelbase = 2.80-2.98 m (110.4-117.5\"); Includes full-size vehicles, like the Infiniti Q70 and Jaguar XF" << endl;
+			cout << "\tClass 5 - Wheelbase = 2.98+ m (117.5\"+); Unusual for modern passenger cars to fit this class\n" << endl;
 
 			cout << "Enter a value from 1-5 to select one of the SAE classed (enter 1 to select Class 1, 2 to select Class 2, etc.)\nOR\nEnter 0 to define your own parameters: ";
 			cin >> selection;
@@ -108,7 +111,7 @@ class Vehicle
 			{
 				// User defined parameters
 				cout << "Enter the mass, m (kg): "; cin >> mass;
-				cout << "Enter the moment of inertia, J (N*s^2*in): "; cin >> inertia;
+				cout << "Enter the moment of inertia, J (N*s^2*m): "; cin >> inertia;
 				cout << "Enter the front suspension stiffness, k_f (N/m): "; cin >> stiffness_f;
 				cout << "Enter the rear suspension stiffness, k_r (N/m): "; cin >> stiffness_r;
 				cout << "Enter the front damping coefficient, c_f (N*s/m): "; cin >> damping_f;
@@ -216,7 +219,8 @@ class Vehicle
 
 };
 
-// Coupled ODE struct used to solve equations (inherits data from Vehicle & Road class)
+
+// ODE integration parameters class used to solve equations (inherits data from Vehicle & Road class)
 class analysisParam
 {
 	public:
@@ -252,10 +256,20 @@ class coupledODE
 
 		void operator()(state_type &x, state_type &dxdt, double t)
 		{
+			double wave_f = car.stiffness_f*road.A*sin((road.radFreq)*t);
+			double wave_r = car.stiffness_r*road.A*sin((road.radFreq)*t - (2 * pi*(car.frontLength + car.rearLength)) / road.L);
+
+			double term1f = car.stiffness_f*x[0] + car.damping_f*x[1];
+			double term1r = car.stiffness_r*x[0] + car.damping_r*x[1];
+			double term2f = car.stiffness_f*x[2] + car.damping_f*x[3];
+			double term2r = car.stiffness_r*x[2] + car.damping_r*x[3];
+			double term3f = -term1f + term2f*car.frontLength + wave_f;
+			double term3r = -term1r - term2r*car.rearLength + wave_r;
+
 			dxdt[0] = x[1];
-			dxdt[1] = (1 / car.mass)*(-1*(car.damping_f + car.damping_r)*x[1] - (car.stiffness_f + car.stiffness_r)*x[0] - (car.damping_r*car.rearLength - car.damping_f*car.frontLength)*x[3] - (car.stiffness_r*car.rearLength - car.stiffness_f*car.frontLength)*x[2] + car.stiffness_f*road.A*sin((road.radFreq)*t) + car.stiffness_r*road.A*sin((road.radFreq)*t - (2 * pi*(car.frontLength + car.rearLength)) / road.L));
+			dxdt[1] = (1 / car.mass)*(term3f + term3r);
 			dxdt[2] = x[3];
-			dxdt[3] = (1/car.inertia)*(-1*(car.damping_f*pow(car.frontLength,2)+car.damping_r*pow(car.rearLength,2))*x[3]-(car.stiffness_f*pow(car.frontLength,2)+car.stiffness_r*pow(car.rearLength,2))*x[2]-(car.damping_r*car.rearLength-car.damping_f*car.frontLength)*x[1]-(car.stiffness_r*car.rearLength-car.stiffness_f*car.frontLength)*x[0]+car.stiffness_r*car.rearLength*road.A*sin((road.radFreq)*t-(2*pi*(car.frontLength+car.rearLength))/road.L)-car.stiffness_f*car.frontLength*road.A*sin((road.radFreq)*t));
+			dxdt[3] = (1 / car.inertia)*(-term3f*car.frontLength + term3r*car.rearLength);
 		}
 };
 
@@ -313,9 +327,13 @@ int main()
 		double tEnd = calcParams.tf;				// End time as defined by user
 
 
-		// Initialize odeint using standard rk5 integration
-		typedef runge_kutta_dopri5<state_type> rk5;
-		integrate_const(make_dense_output(1E-3, 1E-6, rk5()), coupledODE(car,road), x, tStart, tEnd, timeStep, writeVals(x_vec, times));
+		// Initialize odeint using standard rk5 integration (DOES NOT WORK)
+		//typedef runge_kutta_dopri5<state_type> rk5;
+		//ntegrate_const(make_dense_output(1E-3, 1E-6, rk5()), coupledODE(car,road), x, tStart, tEnd, timeStep, writeVals(x_vec, times));
+
+		// Initialize odeint using Burlisch Stoer
+		bulirsch_stoer_dense_out< state_type > stepper(1E-8, 0.0, 0.0, 0.0);
+		integrate_const(stepper, coupledODE(car, road), x, tStart, tEnd, timeStep, writeVals(x_vec, times));
 
 		ofstream out("results.txt");
 		if (out.is_open())
